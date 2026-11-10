@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="ControlLab 恒温箱 PID 控制仿真：在 Avalonia 桌面工作区里，用 ESP32 调节加热功率，观察温度趋稳与开门后的恢复。">
+  <meta name="theme-color" content="#f7f6f2">
+  <meta property="og:title" content="ControlLab · 让温度，稳稳停在目标值。">
+  <meta property="og:description" content="ESP32 + Avalonia，让一次完整的 PID 温度控制实验变得看得见。">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://0use.net/GPTShit/assets/dark.webp">
+  <link rel="canonical" href="https://0use.net/GPTShit/">
+  <link rel="icon" href="assets/favicon.ico" sizes="any">
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+  <title>ControlLab · 恒温箱 PID 控制仿真</title>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到正文</a>
+  <header class="navigation wrap">
+    <a class="brand" href="#" aria-label="ControlLab 首页"><img src="assets/icon.webp" width="40" height="40" alt=""><span>ControlLab</span></a>
+    <nav aria-label="主导航"><a href="#experiment">功能</a><a href="#preview">界面</a><a href="#download">下载</a><a class="github" href="https://github.com/0use-TE/GPTShit" target="_blank" rel="noopener noreferrer">GitHub <span aria-hidden="true">↗</span></a></nav>
+  </header>
+  <main id="main">
+    <section class="hero wrap">
+      <p class="eyebrow"><span aria-hidden="true"></span> ESP32 · PID · 桌面仿真</p>
+      <h1>让温度，<br><span>稳稳停在目标值。</span></h1>
+      <p class="intro">设定 50℃，看 ESP32 调节加热功率。<br>从升温、趋稳到开门后的恢复，亲手完成一次温度控制实验。</p>
+      <div class="actions"><a class="button primary" href="https://github.com/0use-TE/GPTShit/releases/download/v0.1.0/ControlLab.exe">下载 Windows 版 <span aria-hidden="true">↗</span></a><a class="button secondary" href="#preview">看看实际界面 <span aria-hidden="true">↓</span></a></div>
+      <p class="requirements">Windows x64 · 单文件 · Native AOT</p>
+      <button class="screenshot hero-shot" data-image="assets/dark.webp" data-caption="ControlLab 深色工作区：左侧控制与曲线，右侧电路仿真与通信日志。" aria-label="放大查看 ControlLab 深色界面"><img src="assets/dark.webp" width="1376" height="939" alt="ControlLab 实际运行界面，温度接近 50℃，ESP32 连接恒温箱热模型，下方显示通信日志" fetchpriority="high"></button>
+      <div class="image-note"><span>实际运行截图</span><span>一个工作区，连接控制与反馈。</span></div>
+    </section>
+
+    <section id="experiment" class="wrap section-space">
+      <div class="section-heading"><div><p class="kicker">一次完整的控制实验</p><h2>从一个设定值，<br>到看得见的稳定。</h2></div><p>不需要准备实体开发板。<br>打开软件，就能观察一个温度闭环如何工作。</p></div>
+      <div class="features">
+        <article class="feature blue"><span class="number">01 / 设定</span><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M16 24V9a4 4 0 0 1 8 0v15a8 8 0 1 1-8 0Z"/><path d="M20 15v15m9-17h5m-5 7h3"/></svg><h3>给温度一个目标</h3><p>设置目标温度，调整 Kp、Ki、Kd。让 ESP32 上的 PID 程序决定每一次加热输出。</p></article>
+        <article class="feature peach"><span class="number">02 / 扰动</span><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M8 34h24M12 34V7h17v27M16 34V11l10 3v20m-5-11h1"/><path d="m32 14 4-3m-4 10h5"/></svg><h3>开门，再看它恢复</h3><p>开门 5 秒，加快箱体散热。观察温度下降、加热增强，再逐渐回到目标值。</p></article>
+        <article class="feature sage"><span class="number">03 / 观察</span><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M6 8v26h28M10 28c8 0 7-15 15-15h9"/><path d="M10 17h24" stroke-dasharray="3 4"/></svg><h3>把响应看明白</h3><p>实时曲线对照实际与目标温度，电路、下位机代码和日志一起呈现整个控制过程。</p></article>
+      </div>
+    </section>
+
+    <section id="preview" class="preview-section">
+      <div class="wrap">
+        <div class="section-heading"><div><p class="kicker">少一点切换，多一点专注</p><h2>你的温控实验台。</h2></div><p>控制与曲线放在一起。<br>深浅主题、代码高亮，让实验过程清晰可读。</p></div>
+        <div class="preview-tabs" role="tablist" aria-label="软件界面预览">
+          <button id="tab-dark" role="tab" aria-selected="true" aria-controls="preview-panel" data-preview="dark">深色工作区</button>
+          <button id="tab-light" role="tab" aria-selected="false" aria-controls="preview-panel" tabindex="-1" data-preview="light">浅色工作区</button>
+          <button id="tab-code" role="tab" aria-selected="false" aria-controls="preview-panel" tabindex="-1" data-preview="code">下位机代码</button>
+        </div>
+        <div id="preview-panel" role="tabpanel" aria-labelledby="tab-dark">
+          <button id="preview-open" class="screenshot preview-shot" data-image="assets/dark.webp" data-caption="控制、曲线、电路与日志，在同一个桌面工作区。" aria-label="放大查看当前软件界面"><img id="preview-image" src="assets/dark.webp" width="1376" height="939" alt="ControlLab 深色工作区：控制面板、实时温度曲线、ESP32 电路与通信日志" loading="lazy"></button>
+          <p id="preview-caption" class="caption">控制、曲线、电路与日志，在同一个桌面工作区。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="principle wrap section-space">
+      <div class="principle-copy"><p class="kicker">里面发生了什么</p><h2>控制在 ESP32，<br>温度来自热模型。</h2><p>MicroPython 程序在 Wokwi 的 ESP32 中采样、计算 PID、输出 PWM。自定义热模型根据加热与散热更新温度，再通过 I²C 反馈给单片机。</p><p>Avalonia 负责设置参数和展示结果。温度不是上位机播放的预设动画，而是这个闭环持续计算的结果。</p><a class="text-link" href="https://github.com/0use-TE/GPTShit#控制与模型" target="_blank" rel="noopener noreferrer">查看模型与算法说明 <span aria-hidden="true">↗</span></a></div>
+      <div class="loop" aria-label="闭环流程：ESP32 PID 输出 PWM，热模型计算温度，通过 I²C 反馈给 ESP32">
+        <div class="loop-row"><div class="loop-node"><span class="node-mark">01</span><strong>ESP32</strong><span>PID 控制</span></div><span class="flow-arrow" aria-hidden="true">→</span><div class="loop-node warm"><span class="node-mark">02</span><strong>恒温箱</strong><span>加热与散热模型</span></div></div>
+        <div class="loop-feedback"><span>PWM 加热输出</span><span>← I²C 温度反馈</span></div>
+        <div class="loop-metrics"><div><strong>100<span> ms</span></strong><span>控制周期</span></div><div><strong>500<span> ms</span></strong><span>遥测周期</span></div></div>
+        <p>温度达到 80℃或传感器异常时，停止加热。</p>
+      </div>
+    </section>
+
+    <section id="download" class="download wrap section-space">
+      <div class="download-card"><div><p class="kicker">现在，开始你的实验</p><h2>一个文件，<br>打开你的温控实验台。</h2><p>下载后直接运行，等待仿真连接，点击「启动仿真」。<br>目标温度默认 50℃，点击「开始控温」即可观察升温。</p><div class="actions"><a class="button primary" href="https://github.com/0use-TE/GPTShit/releases/download/v0.1.0/ControlLab.exe">下载 ControlLab <span aria-hidden="true">↓</span></a><a class="text-link" href="https://github.com/0use-TE/GPTShit/releases/tag/v0.1.0" target="_blank" rel="noopener noreferrer">版本与校验文件 ↗</a></div><p class="download-note">Windows x64 · 约 17.24 MiB · 需要网络连接及 <a href="https://developer.microsoft.com/microsoft-edge/webview2/" target="_blank" rel="noopener noreferrer">WebView2 Runtime</a></p></div><img src="assets/icon.webp" width="180" height="180" alt="ControlLab 图标：温度计与趋于稳定的控制响应曲线" loading="lazy"></div>
+    </section>
+
+    <section class="faq wrap section-space"><p class="kicker">开始前，你可能想知道</p><h2>几个小问题。</h2>
+      <details><summary>需要 ESP32 开发板或实体传感器吗？</summary><p>不需要。ESP32 在 Wokwi 中执行真实的 MicroPython 控制程序，恒温箱和温度传感器由自定义热模型模拟。这里没有连接实体硬件，也不包含加热功率电路的 SPICE 分析。</p></details>
+      <details><summary>可以离线使用吗？</summary><p>当前版本需要网络加载 Wokwi 页面与仿真引擎。下位机固件和热模型已随软件打包，无须每次启动都在线编译。Windows 还需要安装 WebView2 Runtime，无须安装 .NET SDK。</p></details>
+      <details><summary>单文件启动后为什么会生成文件？</summary><p>单文件是分发方式。wrappe 首次运行会把程序和资源解包到用户数据目录，后续启动复用相同版本。浏览器数据也保存在用户数据目录，方便更新软件。</p></details>
+      <details><summary>可以查看或修改算法吗？</summary><p>可以。项目以 MIT 许可开放源码，仓库包含 MicroPython PID 程序、热模型 C 代码和 Avalonia 上位机。软件内的代码区用于查看；修改后的下位机程序需要重新构建固件镜像。</p></details>
+    </section>
+  </main>
+  <footer class="wrap"><a class="brand" href="#"><img src="assets/icon.webp" width="28" height="28" alt=""><span>ControlLab</span></a><span>把控制原理，变成看得见的实验。</span><a href="https://github.com/0use-TE/GPTShit/blob/main/LICENSE">MIT · © 2026 Ouse <span aria-hidden="true">↗</span></a></footer>
+  <dialog id="image-viewer" aria-label="软件界面大图"><button id="close-viewer" aria-label="关闭大图">关闭 ×</button><img id="viewer-image" alt=""><p id="viewer-caption"></p></dialog>
+</body>
+</html>

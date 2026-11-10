@@ -1,5 +1,10 @@
 # 基于 ESP32 与 Avalonia 的恒温箱 PID 控制仿真系统
 
+[软件介绍网站](https://0use.net/GPTShit/) · [Windows 预览版下载](https://github.com/0use-TE/GPTShit/releases/tag/v0.1.0)
+
+`website/` 是纯 HTML / CSS / JavaScript 介绍页，包含真实桌面截图，无需安装 Node 依赖。
+`.github/workflows/pages.yml` 在网站修改推送到 main 时部署到 GitHub Pages，也支持手动运行。
+
 ## 本地 Native AOT 与单文件发布
 
 ```powershell
