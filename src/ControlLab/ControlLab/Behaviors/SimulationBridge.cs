@@ -1,6 +1,9 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Threading;
+using Avalonia.Platform;
+using System;
+using System.IO;
 using ControlLab.Services;
 namespace ControlLab.Behaviors;
 
@@ -14,6 +17,7 @@ public sealed class SimulationBridge : AvaloniaObject
     public static SimulationSession? GetSession(NativeWebView control) => control.GetValue(SessionProperty);
     static SimulationBridge() => SessionProperty.Changed.AddClassHandler<NativeWebView>((view, change) =>
     {
+        view.EnvironmentRequested -= OnEnvironmentRequested;
         view.AdapterCreated -= OnAdapterCreated;
         view.WebMessageReceived -= OnMessage;
         view.NavigationCompleted -= OnNavigationCompleted;
@@ -23,6 +27,7 @@ public sealed class SimulationBridge : AvaloniaObject
         if (change.OldValue is SimulationSession previous) previous.ExecuteScript = null;
         if (change.NewValue is SimulationSession session)
         {
+            view.EnvironmentRequested += OnEnvironmentRequested;
             view.AdapterCreated += OnAdapterCreated;
             view.WebMessageReceived += OnMessage;
             view.NavigationCompleted += OnNavigationCompleted;
@@ -33,6 +38,11 @@ public sealed class SimulationBridge : AvaloniaObject
             if (view.AdapterInfo is not null) InitializeView(view);
         }
     });
+    private static void OnEnvironmentRequested(object? sender, WebViewEnvironmentRequestedEventArgs e)
+    {
+        if (e is WindowsWebView2EnvironmentRequestedEventArgs windows)
+            windows.UserDataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ControlLab", "WebView2");
+    }
     private static void OnAdapterCreated(object? sender, WebViewAdapterEventArgs e)
     {
         if (sender is NativeWebView view) InitializeView(view);

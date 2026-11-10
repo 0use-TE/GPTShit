@@ -1,4 +1,4 @@
-param([string]$AppPath = "$PSScriptRoot/../artifacts/win-x64/ControlLab.Desktop.exe")
+param([string]$AppPath = "$PSScriptRoot/../artifacts/win-x64/ControlLab.Desktop.exe", [switch]$Packed)
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName UIAutomationClient
 Add-Type -AssemblyName UIAutomationTypes
@@ -62,8 +62,21 @@ function Select-Tab([string]$Name) {
 }
 
 $executable = (Resolve-Path -LiteralPath $AppPath).Path
+$priorProcesses = @(Get-Process -Name ControlLab.Desktop -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Id)
 $appProcess = Start-Process -FilePath $executable -WorkingDirectory (Split-Path $executable) -WindowStyle Hidden -PassThru
 try {
+    if ($Packed) {
+        $unpackRoot = [IO.Path]::GetFullPath((Join-Path $env:LOCALAPPDATA 'ControlLab-PID')) + [IO.Path]::DirectorySeparatorChar
+        $deadline = [DateTime]::UtcNow.AddSeconds(30)
+        do {
+            $child = Get-Process -Name ControlLab.Desktop -ErrorAction SilentlyContinue | Where-Object {
+                $_.Id -notin $priorProcesses -and $_.Path -and $_.Path.StartsWith($unpackRoot, [StringComparison]::OrdinalIgnoreCase)
+            } | Select-Object -First 1
+            if ($child) { $appProcess = $child; Write-Output 'PASS  单文件解包并启动 AOT 应用'; break }
+            Start-Sleep -Milliseconds 200
+        } while ([DateTime]::UtcNow -lt $deadline)
+        if (!$child) { throw '单文件未启动解包后的应用' }
+    }
     Wait-Label '已连接'
     Select-Tab '日志'
     Wait-Label '已确认命令：0' 10

@@ -1,5 +1,22 @@
 # 基于 ESP32 与 Avalonia 的恒温箱 PID 控制仿真系统
 
+## 本地 Native AOT 与单文件发布
+
+```powershell
+./publish.ps1 -SingleFile
+```
+
+目录版输出到 `artifacts/win-x64/`，单文件输出到 `artifacts/single-file/ControlLab.exe`，旁边的 `.sha256` 用于核验文件。
+单文件使用 wrappe 1.0.6 压缩 AOT 程序、原生图形库、网页和固件，不包含调试符号和浏览器缓存。
+首次运行解包到 `%LOCALAPPDATA%/ControlLab-PID/` 下按内容版本隔离的目录，后续启动核验并复用。
+WebView2 数据存放在 `%LOCALAPPDATA%/ControlLab/WebView2/`。
+运行仍需要系统 WebView2 Runtime 与网络访问 Wokwi。单文件指分发形式，运行时会解包文件。
+脚本使用 PowerShell 7；打包工具会下载到忽略的 `work/tools/`，并验证固定版本的 SHA256。
+
+```powershell
+pwsh -File tests/smoke-native.ps1 -Packed -AppPath ./artifacts/single-file/ControlLab.exe
+```
+
 ESP32 执行温度采样、PID、PWM 和故障保护；Wokwi 自定义热模型计算加热与散热，反馈温度；Avalonia 负责设置参数、显示曲线与记录实验。
 
 ## 运行与演示

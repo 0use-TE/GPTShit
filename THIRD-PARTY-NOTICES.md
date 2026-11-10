@@ -1,5 +1,10 @@
 # Third-party notices
 
+Single-file packages use the wrappe 1.0.6 runner from https://github.com/Systemcluster/wrappe.
+Copyright (c) 2020 Christian Sdunek and the wrappe contributors; BSD-2-Clause.
+The complete notice is included as `Licenses/wrappe.txt` in the packed payload;
+source copy: `tools/licenses/wrappe-LICENSE.txt`.
+
 `src/ControlLab/ControlLab/Assets/Web/vendor/` contains `base64.js`,
 `message-port-transport.js`, and `wokwi-client.js` from
 https://github.com/wokwi/wokwi-embed-example (retrieved 2026-11-09).
