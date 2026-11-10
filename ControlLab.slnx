@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/ControlLab/">
+    <Project Path="src/ControlLab/ControlLab.Desktop/ControlLab.Desktop.csproj" />
+    <Project Path="src/ControlLab/ControlLab/ControlLab.csproj" />
+  </Folder>
+</Solution>

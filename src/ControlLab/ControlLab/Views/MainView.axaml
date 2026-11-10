@@ -1,0 +1,103 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ControlLab.ViewModels"
+             xmlns:b="using:ControlLab.Behaviors"
+             x:Class="ControlLab.Views.MainView" x:DataType="vm:MainViewModel"
+             ViewModelLocator.AutoWireViewModel="True"
+             Background="{DynamicResource LabBackground}">
+  <UserControl.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Dark">
+          <SolidColorBrush x:Key="LabBackground" Color="#181818" />
+          <SolidColorBrush x:Key="LabSurface" Color="#1F1F1F" />
+          <SolidColorBrush x:Key="LabSidebar" Color="#181818" />
+          <SolidColorBrush x:Key="LabBorder" Color="#2B2B2B" />
+          <SolidColorBrush x:Key="LabText" Color="#CCCCCC" />
+          <SolidColorBrush x:Key="LabMuted" Color="#8B949E" />
+          <SolidColorBrush x:Key="LabAccent" Color="#75BEFF" />
+          <SolidColorBrush x:Key="LabAccentSurface" Color="#16324B" />
+          <SolidColorBrush x:Key="LabSuccess" Color="#89D185" />
+          <SolidColorBrush x:Key="LabError" Color="#F48771" />
+          <SolidColorBrush x:Key="LabCode" Color="#DCDCAA" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Light">
+          <SolidColorBrush x:Key="LabBackground" Color="#F8F8F8" />
+          <SolidColorBrush x:Key="LabSurface" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="LabSidebar" Color="#F8F8F8" />
+          <SolidColorBrush x:Key="LabBorder" Color="#E5E5E5" />
+          <SolidColorBrush x:Key="LabText" Color="#3B3B3B" />
+          <SolidColorBrush x:Key="LabMuted" Color="#717171" />
+          <SolidColorBrush x:Key="LabAccent" Color="#005FB8" />
+          <SolidColorBrush x:Key="LabAccentSurface" Color="#E8F1FC" />
+          <SolidColorBrush x:Key="LabSuccess" Color="#267F3A" />
+          <SolidColorBrush x:Key="LabError" Color="#C72E0F" />
+          <SolidColorBrush x:Key="LabCode" Color="#795E26" />
+        </ResourceDictionary>
+      </ResourceDictionary.ThemeDictionaries>
+    </ResourceDictionary>
+  </UserControl.Resources>
+  <UserControl.Styles>
+    <Style Selector="Button"><Setter Property="Cursor" Value="Hand" /><Setter Property="MinHeight" Value="32" /></Style>
+    <Style Selector="TextBlock.error"><Setter Property="Foreground" Value="{DynamicResource LabError}" /></Style>
+  </UserControl.Styles>
+  <UserControl.DataTemplates>
+    <DataTemplate DataType="{x:Type vm:DeviceTab}" x:DataType="vm:DeviceTab">
+      <StackPanel Margin="20" Spacing="12">
+        <Button Content="启动仿真" Classes="Primary" Command="{Binding Workspace.StartCommand}" IsEnabled="{Binding Workspace.Session.IsConnected}" HorizontalAlignment="Stretch" />
+        <Button Content="重新连接" Classes="Tertiary" Command="{Binding Workspace.ReconnectCommand}" HorizontalAlignment="Stretch" />
+        <Rectangle Height="1" Fill="{DynamicResource LabBorder}" Margin="0,8" />
+        <TextBlock Text="{Binding Workspace.Session.LedState}" FontSize="15" Margin="0,0,0,4" />
+        <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+          <Button Content="点亮" AutomationProperties.Name="点亮 LED" Command="{Binding Workspace.LedOnCommand}" IsEnabled="{Binding Workspace.Session.IsRunning}" HorizontalAlignment="Stretch" />
+          <Button Grid.Column="1" Content="熄灭" AutomationProperties.Name="熄灭 LED" Command="{Binding Workspace.LedOffCommand}" IsEnabled="{Binding Workspace.Session.IsRunning}" HorizontalAlignment="Stretch" />
+        </Grid>
+        <Button Content="Ping" AutomationProperties.Name="Ping 下位机" Command="{Binding Workspace.PingCommand}" IsEnabled="{Binding Workspace.Session.IsRunning}" HorizontalAlignment="Stretch" Margin="0,8,0,0" />
+      </StackPanel>
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:CircuitTab}" x:DataType="vm:CircuitTab">
+      <NativeWebView b:SimulationBridge.Session="{Binding Workspace.Session}" />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:SourceTab}" x:DataType="vm:SourceTab">
+      <ScrollViewer Background="{DynamicResource LabSurface}" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+        <Grid ColumnDefinitions="48,*" Margin="0,18,20,18">
+          <TextBlock Text="{Binding LineNumbers}" TextAlignment="Right" Margin="0,0,14,0" Foreground="{DynamicResource LabMuted}" FontFamily="Cascadia Mono,Consolas" FontSize="13" LineHeight="22" />
+          <SelectableTextBlock Grid.Column="1" Text="{Binding Code}" Foreground="{DynamicResource LabText}" FontFamily="Cascadia Mono,Consolas" FontSize="13" LineHeight="22" />
+        </Grid>
+      </ScrollViewer>
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:LogTab}" x:DataType="vm:LogTab">
+      <Grid RowDefinitions="36,*" Background="{DynamicResource LabSurface}">
+        <Grid ColumnDefinitions="*,Auto" Margin="14,0,8,0" VerticalAlignment="Center">
+          <TextBlock Text="{Binding Workspace.Session.AckCount, StringFormat='已确认命令：{0}'}" VerticalAlignment="Center" FontSize="13" />
+          <Button Grid.Column="1" Content="清空" AutomationProperties.Name="清空日志" Classes="Small Tertiary" Command="{Binding Workspace.ClearLogsCommand}" />
+        </Grid>
+        <ListBox Grid.Row="1" ItemsSource="{Binding Workspace.Session.Logs}" Background="Transparent" BorderThickness="0" Padding="6" FontFamily="Cascadia Mono,Consolas" FontSize="13">
+          <ListBox.ItemTemplate><DataTemplate x:DataType="x:String"><SelectableTextBlock Text="{Binding}" TextWrapping="Wrap" FontSize="13" /></DataTemplate></ListBox.ItemTemplate>
+        </ListBox>
+      </Grid>
+    </DataTemplate>
+  </UserControl.DataTemplates>
+  <Grid RowDefinitions="48,*">
+    <Border BorderBrush="{DynamicResource LabBorder}" BorderThickness="0,0,0,1" Padding="18,0">
+      <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="18" VerticalAlignment="Center">
+        <TextBlock Text="ControlLab" FontSize="17" FontWeight="SemiBold" VerticalAlignment="Center" />
+        <TextBlock Grid.Column="1" Text="{Binding Session.ConnectionLabel}" ToolTip.Tip="{Binding Session.Status}" Classes.error="{Binding Session.HasError}" Foreground="{DynamicResource LabMuted}" FontSize="13" VerticalAlignment="Center" />
+        <Button Grid.Column="2" Classes="Tertiary" Command="{Binding ToggleThemeCommand}" AutomationProperties.AutomationId="ThemeToggle" AutomationProperties.Name="{Binding ThemeAction}" ToolTip.Tip="{Binding ThemeAction}" Width="34" Padding="8">
+          <Path Data="M12,8 A4,4 0 1 1 11.99,8 M12,1 L12,4 M12,20 L12,23 M1,12 L4,12 M20,12 L23,12 M4,4 L6,6 M18,18 L20,20 M4,20 L6,18 M18,6 L20,4" Stroke="{DynamicResource LabText}" StrokeThickness="1.5" Width="18" Height="18" Stretch="Uniform" />
+        </Button>
+      </Grid>
+    </Border>
+    <DockShell Grid.Row="1" ColorTheme="{Binding DockTheme}" PanePresentation="ClassicSeams" TabPresentation="ClassicTabs" TabStripSize="36">
+      <Grid ColumnDefinitions="224,Auto,*">
+        <DockRegion ItemsSource="{Binding ToolTabs}" SelectedItem="{Binding SelectedTool}" ShowTabPlacementButton="False" ShowMaximizeButton="False" />
+        <DockSplitter Grid.Column="1" />
+        <Grid Grid.Column="2" RowDefinitions="2*,Auto,*">
+          <DockRegion ItemsSource="{Binding DocumentTabs}" SelectedItem="{Binding SelectedDocument}" ShowTabPlacementButton="False" />
+          <DockSplitter Grid.Row="1" />
+          <DockRegion Grid.Row="2" ItemsSource="{Binding OutputTabs}" SelectedItem="{Binding SelectedOutput}" ShowTabPlacementButton="False" />
+        </Grid>
+      </Grid>
+    </DockShell>
+  </Grid>
+</UserControl>

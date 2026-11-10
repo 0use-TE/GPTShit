@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ControlLab · Wokwi</title><style>
+:root{color-scheme:dark;--bg:#1f1f1f;--fg:#ccc;--border:#2b2b2b;--accent:#75beff}
+:root[data-theme=light]{color-scheme:light;--bg:#fff;--fg:#3b3b3b;--border:#e5e5e5;--accent:#005fb8}
+html,body{margin:0;height:100%;font:12px system-ui;background:var(--bg);color:var(--fg)}
+body{display:flex;flex-direction:column}header{height:30px;padding:0 14px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border)}
+strong{font-size:10px;font-weight:600;letter-spacing:1px;color:var(--accent)}#status{flex:1}
+iframe{border:0;flex:1;background:var(--bg);width:100%;min-height:200px}
+button{background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:4px;padding:3px 10px;cursor:pointer}
+#browser-tools{display:none;gap:6px}body.browser #browser-tools{display:flex}body:not(.browser) header{display:none}
+</style></head><body><header><strong>WOKWI</strong><span id="status">正在连接仿真环境…</span>
+<div id="browser-tools"><button id="start">启动</button><button id="on">开灯</button><button id="off">关灯</button><button id="ping">Ping</button></div></header>
+<iframe id="simulator" title="Wokwi ESP32 circuit" allow="autoplay; clipboard-write" src="about:blank"></iframe>
+<script type="module" src="bridge.js"></script></body></html>
