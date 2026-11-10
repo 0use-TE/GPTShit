@@ -15,8 +15,8 @@
     {
       "type": "chip-thermal",
       "id": "box",
-      "top": 0,
-      "left": 250,
+      "top": 20,
+      "left": 320,
       "attrs": {}
     }
   ],
@@ -34,46 +34,52 @@
       []
     ],
     [
-      "esp:25",
+      "esp:23",
       "box:PWM",
-      "orange",
-      []
-    ],
-    [
-      "esp:27",
-      "box:DOOR",
-      "purple",
-      []
-    ],
-    [
-      "esp:26",
-      "box:FAULT",
-      "gray",
+      "#E9A95B",
       []
     ],
     [
       "esp:22",
       "box:SCL",
-      "blue",
+      "#69A9DF",
       []
     ],
     [
       "esp:21",
       "box:SDA",
-      "green",
+      "#63BCA2",
+      []
+    ],
+    [
+      "esp:GND.2",
+      "box:GND",
+      "#8B949E",
+      []
+    ],
+    [
+      "esp:19",
+      "box:DOOR",
+      "#B59CDE",
+      []
+    ],
+    [
+      "esp:18",
+      "box:FAULT",
+      "#C9A06A",
       []
     ],
     [
       "esp:3V3",
       "box:VCC",
-      "red",
-      []
-    ],
-    [
-      "esp:GND.1",
-      "box:GND",
-      "black",
-      []
+      "#DE777C",
+      [
+        "h-24",
+        "v-40",
+        "*",
+        "v-40",
+        "h24"
+      ]
     ]
   ],
   "dependencies": {},

@@ -4,9 +4,9 @@ import time
 import ujson
 from pid import PID
 
-heater = PWM(Pin(25), freq=500, duty=0)
-door_pin = Pin(27, Pin.OUT, value=0)
-fault_pin = Pin(26, Pin.OUT, value=0)
+heater = PWM(Pin(23), freq=500, duty=0)
+door_pin = Pin(19, Pin.OUT, value=0)
+fault_pin = Pin(18, Pin.OUT, value=0)
 sensor = I2C(0, scl=Pin(22), sda=Pin(21), freq=100000)
 uart = UART(2, baudrate=115200, tx=17, rx=16)
 pid = PID()

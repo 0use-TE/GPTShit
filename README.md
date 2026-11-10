@@ -29,8 +29,8 @@ Avalonia 参数与曲线
 ESP32 MicroPython 程序
        ├─ I²C 温度采样：GPIO22 / GPIO21，地址 0x48
        ├─ PID：100ms 周期
-       ├─ PWM：GPIO25，500Hz
-       └─ 开门：GPIO27
+       ├─ PWM：GPIO23，500Hz
+       └─ 开门：GPIO19
                   ↕
 Wokwi thermal.chip.wasm 热过程模型
 ```
