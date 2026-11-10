@@ -27,7 +27,6 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty] private decimal _ki = 0.7m;
     [ObservableProperty] private decimal _kd = 4m;
     private readonly CircuitTab _circuitTab;
-    private readonly SourceTab _sourceTab;
 
     public MainViewModel(SimulationSession session)
     {
@@ -35,10 +34,9 @@ public partial class MainViewModel : ViewModelBase
         ToolTabs = [new DeviceTab(this)];
         SelectedTool = ToolTabs[0];
         _circuitTab = new CircuitTab(this);
-        _sourceTab = new SourceTab(this);
         DocumentTabs = [_circuitTab];
         SelectedDocument = DocumentTabs[0];
-        OutputTabs = [_sourceTab, new LogTab(this)];
+        OutputTabs = [new LogTab(this)];
         SelectedOutput = OutputTabs[0];
     }
 
@@ -53,14 +51,6 @@ public partial class MainViewModel : ViewModelBase
         await Session.SetThemeAsync(IsDarkTheme);
     }
     [RelayCommand] private Task StartAsync() => Session.StartAsync();
-    [RelayCommand] private void ShowSource() => SelectTab(_sourceTab);
-    [RelayCommand] private void ShowCircuit() => SelectTab(_circuitTab);
-    private void SelectTab(WorkspaceTab tab)
-    {
-        if (DocumentTabs.Contains(tab)) SelectedDocument = tab;
-        else if (ToolTabs.Contains(tab)) SelectedTool = tab;
-        else if (OutputTabs.Contains(tab)) SelectedOutput = tab;
-    }
     [RelayCommand] private Task ReconnectAsync() => Session.ReconnectAsync();
     private Task<bool> ApplyConfigurationAsync() => Session.SendAsync(new DeviceCommand("configure", "")
     { Target = (double)TargetTemperature, Kp = (double)Kp, Ki = (double)Ki, Kd = (double)Kd });

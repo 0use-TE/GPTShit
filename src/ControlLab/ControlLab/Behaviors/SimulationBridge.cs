@@ -14,6 +14,7 @@ public sealed class SimulationBridge : AvaloniaObject
     public static SimulationSession? GetSession(NativeWebView control) => control.GetValue(SessionProperty);
     static SimulationBridge() => SessionProperty.Changed.AddClassHandler<NativeWebView>((view, change) =>
     {
+        view.AdapterCreated -= OnAdapterCreated;
         view.WebMessageReceived -= OnMessage;
         view.NavigationCompleted -= OnNavigationCompleted;
         view.NavigationStarted -= OnNavigationStarted;
@@ -22,15 +23,27 @@ public sealed class SimulationBridge : AvaloniaObject
         if (change.OldValue is SimulationSession previous) previous.ExecuteScript = null;
         if (change.NewValue is SimulationSession session)
         {
+            view.AdapterCreated += OnAdapterCreated;
             view.WebMessageReceived += OnMessage;
             view.NavigationCompleted += OnNavigationCompleted;
             view.NavigationStarted += OnNavigationStarted;
             view.AttachedToVisualTree += OnAttached;
             view.DetachedFromVisualTree += OnDetached;
             view.SetValue(DocumentReadyProperty, false);
-            view.Source = session.Address;
+            if (view.AdapterInfo is not null) InitializeView(view);
         }
     });
+    private static void OnAdapterCreated(object? sender, WebViewAdapterEventArgs e)
+    {
+        if (sender is NativeWebView view) InitializeView(view);
+    }
+    private static async void InitializeView(NativeWebView view)
+    {
+        if (GetSession(view) is not { } session) return;
+        try { await WebViewThemeSupport.InstallAsync(view).WaitAsync(System.TimeSpan.FromSeconds(10)); }
+        catch (System.Exception error) { session.AddLog("主题同步初始化失败：" + error.Message); }
+        view.Source = session.Address;
+    }
     private static void OnAttached(object? sender, VisualTreeAttachmentEventArgs e)
     {
         if (sender is NativeWebView view && view.GetValue(DocumentReadyProperty) && GetSession(view) is { } session)

@@ -72,14 +72,6 @@
     <DataTemplate DataType="{x:Type vm:CircuitTab}" x:DataType="vm:CircuitTab">
       <NativeWebView b:SimulationBridge.Session="{Binding Workspace.Session}" />
     </DataTemplate>
-    <DataTemplate DataType="{x:Type vm:SourceTab}" x:DataType="vm:SourceTab">
-      <ScrollViewer Background="{DynamicResource LabSurface}" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-        <Grid ColumnDefinitions="48,*" Margin="0,18,20,18">
-          <TextBlock Text="{Binding LineNumbers}" TextAlignment="Right" Margin="0,0,14,0" Foreground="{DynamicResource LabMuted}" FontFamily="Cascadia Mono,Consolas" FontSize="13" LineHeight="22" />
-          <SelectableTextBlock Grid.Column="1" Text="{Binding Code}" Foreground="{DynamicResource LabText}" FontFamily="Cascadia Mono,Consolas" FontSize="13" LineHeight="22" />
-        </Grid>
-      </ScrollViewer>
-    </DataTemplate>
     <DataTemplate DataType="{x:Type vm:LogTab}" x:DataType="vm:LogTab">
       <Grid RowDefinitions="36,*" Background="{DynamicResource LabSurface}">
         <Grid ColumnDefinitions="*,Auto" Margin="14,0,8,0" VerticalAlignment="Center">

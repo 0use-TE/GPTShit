@@ -90,8 +90,11 @@ try {
     Wait-Label '已确认命令：4' 15
     Invoke-Button '浅色模式'
     Wait-Label '深色模式' 10
-    Select-Tab '代码'
-    Wait-Label '"""ESP32 thermostat.' 10
+    Select-Tab 'main.py'
+    Wait-Label 'main.py 下位机代码' 10
+    Select-Tab 'pid.py'
+    Wait-Label 'pid.py 下位机代码' 10
+    Select-Tab '电路'
     Invoke-Button '深色模式'
     Wait-Label '浅色模式' 10
     Wait-Label '温度曲线' 10

@@ -40,3 +40,7 @@ https://github.com/espressif/esp-idf.
 The Wokwi service, simulator, hardware models, and hosted assets are separate
 from this sample client code. They are loaded from Wokwi and are subject to
 Wokwi's applicable terms. This project does not redistribute that simulator.
+
+PrismJS 1.30.0 (core and Python grammar) is distributed in `Assets/Web/vendor/`.
+Copyright (c) 2012 Lea Verou; MIT license. See `vendor/prism-LICENSE`.
+Source: https://github.com/PrismJS/prism/tree/v1.30.0.

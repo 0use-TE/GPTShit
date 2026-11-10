@@ -1,3 +1,4 @@
+import './source-view.js';
 import { WokwiClient } from './vendor/wokwi-client.js';
 import { MessagePortTransport } from './vendor/message-port-transport.js';
 const frame = document.querySelector('#simulator');
@@ -40,6 +41,7 @@ function receiveSerial(bytes) {
   }
 }
 window.addEventListener('message', event => {
+  if (event.origin === 'https://wokwi.com' && event.source === frame.contentWindow && event.data?.type === 'control-lab-theme-ready') { sendFrameTheme(); return; }
   if (event.origin !== 'https://wokwi.com' || event.source !== frame.contentWindow || !event.data?.port || client) return;
   client = new WokwiClient(new MessagePortTransport(event.data.port));
   client.addEventListener('serial-monitor:data', event => receiveSerial(event.detail.bytes));
@@ -58,11 +60,16 @@ async function initialize() {
   initialized = true; state('connected', '电路已加载，点击「启动仿真」');
 }
 function fail(error) { state('error', error.message || String(error)); }
+function sendFrameTheme() {
+  frame.contentWindow?.postMessage({ type: 'control-lab-theme', dark: document.documentElement.dataset.theme === 'dark' }, 'https://wokwi.com');
+}
+frame.addEventListener('load', sendFrameTheme);
 window.controlLab = {
   setTheme(isDark) {
     document.documentElement.dataset.theme = isDark ? 'dark' : 'light';
     document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
     frame.style.colorScheme = isDark ? 'dark' : 'light';
+    sendFrameTheme();
   },
   async start() {
     try {
@@ -97,6 +104,6 @@ document.querySelector('#ping').onclick = () => window.controlLab.send({ command
 if (typeof window.invokeCSharpAction !== 'function') document.body.classList.add('browser');
 try {
   const config = JSON.parse(await loadFile('config.json'));
-  const url = new URL(config.embedUrl); url.searchParams.set('client_id', config.clientId); frame.src = url.href;
+  const url = new URL(config.embedUrl); url.searchParams.set('client_id', config.clientId); url.searchParams.set('dark', document.documentElement.dataset.theme === 'dark' ? '1' : '0'); frame.src = url.href;
   setTimeout(() => { if (!initialized) state('error', 'Wokwi 尚未连接。请检查网络、client_id，或点击「重新连接」。'); }, 30000);
 } catch (error) { fail(error); }
