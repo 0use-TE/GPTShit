@@ -2,7 +2,6 @@ using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Styling;
-using Avalonia.Controls;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ControlLab.Services;
@@ -23,6 +22,10 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty] private VsCodeColorTheme _dockTheme = DockColorThemeCatalog.Create(DockColorTheme.DarkModern);
     public string ThemeAction => IsDarkTheme ? "浅色模式" : "深色模式";
     public string ThemeName => IsDarkTheme ? "Dark Modern" : "Light Modern";
+    [ObservableProperty] private decimal _targetTemperature = 50m;
+    [ObservableProperty] private decimal _kp = 8m;
+    [ObservableProperty] private decimal _ki = 0.7m;
+    [ObservableProperty] private decimal _kd = 4m;
     private readonly CircuitTab _circuitTab;
     private readonly SourceTab _sourceTab;
 
@@ -59,8 +62,17 @@ public partial class MainViewModel : ViewModelBase
         else if (OutputTabs.Contains(tab)) SelectedOutput = tab;
     }
     [RelayCommand] private Task ReconnectAsync() => Session.ReconnectAsync();
-    [RelayCommand] private Task LedOnAsync() => Session.SendAsync("led", true);
-    [RelayCommand] private Task LedOffAsync() => Session.SendAsync("led", false);
-    [RelayCommand] private Task PingAsync() => Session.SendAsync("ping");
+    private Task<bool> ApplyConfigurationAsync() => Session.SendAsync(new DeviceCommand("configure", "")
+    { Target = (double)TargetTemperature, Kp = (double)Kp, Ki = (double)Ki, Kd = (double)Kd });
+    [RelayCommand] private async Task ApplyAsync() => await ApplyConfigurationAsync();
+    [RelayCommand] private async Task ToggleControlAsync()
+    {
+        if (Session.IsHeating)
+            await Session.SendAsync(new DeviceCommand("enable", "") { Enabled = false });
+        else if (await ApplyConfigurationAsync())
+            await Session.SendAsync(new DeviceCommand("enable", "") { Enabled = true });
+    }
+    [RelayCommand] private async Task OpenDoorAsync() => await Session.SendAsync(new DeviceCommand("door", "") { Duration = 5 });
+    [RelayCommand] private async Task PingAsync() => await Session.SendAsync(new DeviceCommand("ping", ""));
     [RelayCommand] private void ClearLogs() => Session.Logs.Clear();
 }

@@ -24,6 +24,19 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
+`firmware/vendor/wokwi-api.h` is from https://github.com/wokwi/inverter-chip,
+Copyright (c) 2022 Uri Shaked, MIT license. See `firmware/vendor/LICENSE`.
+
+`firmware/runtime/micropython.bin` is the ESP32 Generic MicroPython v1.22.0
+image dated 2023-12-27, retrieved from
+https://wokwi.github.io/firmware-assets/micropython/ESP32_GENERIC-20231227-v1.22.0.bin.
+MicroPython is Copyright (c) 2013-2023 Damien P. George and contributors,
+MIT license; see `firmware/runtime/MICROPYTHON-LICENSE`.
+The firmware image also contains ESP-IDF components distributed by the
+upstream MicroPython/Wokwi firmware build. Upstream source and notices:
+https://github.com/micropython/micropython/tree/v1.22.0/ports/esp32 and
+https://github.com/espressif/esp-idf.
+
 The Wokwi service, simulator, hardware models, and hosted assets are separate
 from this sample client code. They are loaded from Wokwi and are subject to
 Wokwi's applicable terms. This project does not redistribute that simulator.

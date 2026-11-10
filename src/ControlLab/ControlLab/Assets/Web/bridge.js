@@ -32,9 +32,9 @@ function receiveSerial(bytes) {
     emit({ type: 'serial', message: line });
     let message;
     try { message = JSON.parse(line); } catch { continue; }
-    if (['ready', 'ack', 'heartbeat', 'error'].includes(message.type)) {
+    if (['ready', 'ack', 'telemetry', 'error'].includes(message.type)) {
       if (message.type === 'ack') pending.delete(message.id);
-      if (message.type === 'ready') { clearTimeout(bootTimer); starting = false; running = true; status.textContent = 'ESP32 程序已就绪 · GPIO2 → LED'; }
+      if (message.type === 'ready') { clearTimeout(bootTimer); starting = false; running = true; status.textContent = '恒温箱已就绪'; }
       emit(message);
     }
   }
@@ -48,7 +48,12 @@ window.addEventListener('message', event => {
 async function initialize() {
   state('loading', '正在加载电路和下位机程序…');
   await withTimeout(client.serialMonitorListen());
-  await withTimeout(client.fileUpload('main.py', await loadFile('main.py')));
+  await withTimeout(client.fileUpload('thermal.chip.json', await loadFile('thermal.chip.json')));
+  for (const file of ['thermal.chip.wasm', 'runtime/micropython.bin', 'runtime/filesystem.bin']) {
+    const response = await fetch(file);
+    if (!response.ok) throw new Error('仿真固件加载失败：' + file);
+    await withTimeout(client.fileUpload(file, new Uint8Array(await response.arrayBuffer())));
+  }
   await withTimeout(client.fileUpload('diagram.json', await loadFile('diagram.json')));
   initialized = true; state('connected', '电路已加载，点击「启动仿真」');
 }
@@ -66,7 +71,10 @@ window.controlLab = {
       starting = true;
       serialBuffer = ''; pending.clear(); state('starting', '正在启动 ESP32 下位机程序…');
       bootTimer = setTimeout(() => { starting = false; if (!running) fail(new Error('下位机在两分钟内未就绪，请重新连接')); }, 120000);
-      await withTimeout(client.simStart({ firmware: 'main.py', elf: 'main.py' }), 120000);
+      await withTimeout(client.simStart({ firmware: [
+        { file: 'runtime/micropython.bin', offset: 0x1000 },
+        { file: 'runtime/filesystem.bin', offset: 0x200000 }
+      ], chips: ['thermal'] }), 120000);
     } catch (error) { clearTimeout(bootTimer); starting = false; fail(error); }
   },
   async send(command) {
@@ -83,8 +91,8 @@ window.controlLab = {
   reconnect() { location.reload(); }
 };
 document.querySelector('#start').onclick = () => window.controlLab.start();
-document.querySelector('#on').onclick = () => window.controlLab.send({ command: 'led', value: true, id: crypto.randomUUID() });
-document.querySelector('#off').onclick = () => window.controlLab.send({ command: 'led', value: false, id: crypto.randomUUID() });
+document.querySelector('#on').onclick = () => window.controlLab.send({ command: 'enable', enabled: true, id: crypto.randomUUID() });
+document.querySelector('#off').onclick = () => window.controlLab.send({ command: 'enable', enabled: false, id: crypto.randomUUID() });
 document.querySelector('#ping').onclick = () => window.controlLab.send({ command: 'ping', id: crypto.randomUUID() });
 if (typeof window.invokeCSharpAction !== 'function') document.body.classList.add('browser');
 try {

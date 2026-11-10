@@ -1,5 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Globalization;
+using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -11,69 +14,125 @@ public partial class SimulationSession(LocalWebServer server) : ObservableObject
     public Func<string, Task<string?>>? ExecuteScript { get; set; }
     public bool IsDarkTheme { get; private set; } = true;
     public ObservableCollection<string> Logs { get; } = [];
-    [ObservableProperty] private string _status = "正在连接 Wokwi…";
+    public IReadOnlyList<ThermalSample> Samples { get; private set; } = Array.Empty<ThermalSample>();
+    private readonly List<ThermalSample> _samples = [];
+    private readonly Dictionary<string, TaskCompletionSource<bool>> _pending = [];
+    private int _sequence;
+    [ObservableProperty] private string _status = "正在连接仿真";
     [ObservableProperty] private string _connectionLabel = "连接中";
     [ObservableProperty] private bool _isConnected;
     [ObservableProperty] private bool _isRunning;
-    [ObservableProperty] private string _ledState = "LED 未就绪";
-    [ObservableProperty] private string _uptime = "—";
-    [ObservableProperty] private int _ackCount;
+    [ObservableProperty] private bool _isHeating;
+    [ObservableProperty] private bool _doorOpen;
     [ObservableProperty] private bool _hasError;
-    private int _sequence;
+    [ObservableProperty] private double _temperature = 25;
+    [ObservableProperty] private double _actualTarget = 50;
+    [ObservableProperty] private double _heaterOutput;
+    [ObservableProperty] private int _ackCount;
+    [ObservableProperty] private string _fault = "";
+    public string ControlAction => IsHeating ? "停止控温" : "开始控温";
+    public string TemperatureText => Temperature.ToString("F1", CultureInfo.InvariantCulture) + " °C";
+    public string OutputText => "加热 " + HeaterOutput.ToString("F0", CultureInfo.InvariantCulture) + "%";
+    public string DoorText => DoorOpen ? "门已打开" : "开门 5 秒";
+    public string SafetyText => Fault switch { "Sensor fault" => "传感器故障，已停止加热", "Overtemperature" => "超温保护，已停止加热", _ => Fault };
+    partial void OnIsHeatingChanged(bool value) => OnPropertyChanged(nameof(ControlAction));
+    partial void OnTemperatureChanged(double value) => OnPropertyChanged(nameof(TemperatureText));
+    partial void OnHeaterOutputChanged(double value) => OnPropertyChanged(nameof(OutputText));
+    partial void OnDoorOpenChanged(bool value) => OnPropertyChanged(nameof(DoorText));
+    partial void OnFaultChanged(string value) => OnPropertyChanged(nameof(SafetyText));
+
     public void Receive(string body)
     {
         try
         {
-            var message = JsonSerializer.Deserialize(body, ProtocolJsonContext.Default.BridgeMessage);
-            if (message is null) return;
-            ConnectionLabel = message.Type switch
+            var m = JsonSerializer.Deserialize(body, ProtocolJsonContext.Default.BridgeMessage);
+            if (m is null) return;
+            switch (m.Type)
             {
-                "connected" => "已连接", "ready" or "ack" => "运行中",
-                "loading" => "连接中", "starting" => "启动中", "error" => "出现错误", _ => ConnectionLabel
-            };
-            switch (message.Type)
-            {
-                case "connected": IsConnected = true; HasError = false; Status = message.Message ?? "已连接"; break;
-                case "ready": IsRunning = true; HasError = false; Status = "下位机运行中"; break;
-                case "loading": IsConnected = false; IsRunning = false; Status = message.Message ?? "加载中"; break;
-                case "starting": Status = message.Message ?? "启动中"; break;
-                case "ack": AckCount++; Status = $"下位机已确认命令 #{message.Id}"; break;
-                case "error": HasError = true; Status = message.Message ?? "通信错误"; break;
+                case "connected": IsConnected = true; HasError = false; ConnectionLabel = "已连接"; Status = "仿真已连接"; break;
+                case "ready":
+                    IsRunning = true; HasError = false; ConnectionLabel = "运行中"; Status = "ESP32 已就绪";
+                    ClearSamples(); break;
+                case "loading": ResetConnection(); break;
+                case "starting": ConnectionLabel = "启动中"; Status = m.Message ?? "启动中"; break;
+                case "ack":
+                    AckCount++; HasError = false;
+                    if (m.Id is { } id && _pending.Remove(id, out var pending)) pending.TrySetResult(true);
+                    break;
+                case "error":
+                    HasError = true; ConnectionLabel = "出现错误"; Status = m.Message ?? "通信错误";
+                    foreach (var request in _pending.Values) request.TrySetResult(false);
+                    _pending.Clear(); break;
             }
-            if (message.Led is { } led) LedState = led ? "LED 已点亮" : "LED 已熄灭";
-            if (message.Uptime is { } ms) Uptime = $"{ms / 1000.0:F1} s";
-            if (message.Type != "heartbeat") AddLog($"{message.Type.ToUpperInvariant()}  {message.Message ?? body}");
+            if (m.Temperature is { } t && double.IsFinite(t)) Temperature = t;
+            if (m.Target is { } target) ActualTarget = target;
+            if (m.Output is { } output) HeaterOutput = output;
+            if (m.Enabled is { } enabled) IsHeating = enabled;
+            if (m.Door is { } door) DoorOpen = door;
+            if (m.Fault is { } fault)
+            {
+                var wasDeviceFault = Fault.Length > 0;
+                Fault = fault;
+                if (fault.Length > 0) { HasError = true; ConnectionLabel = "保护停机"; Status = SafetyText; }
+                else if (wasDeviceFault) { HasError = false; ConnectionLabel = "运行中"; }
+            }
+            if (m.Type == "telemetry" && m.Uptime is { } ms)
+            {
+                _samples.Add(new(ms / 1000.0, Temperature, ActualTarget, HeaterOutput, DoorOpen, IsHeating));
+                if (_samples.Count > 7200) _samples.RemoveAt(0);
+                Samples = _samples.ToArray(); OnPropertyChanged(nameof(Samples));
+            }
+            // Telemetry goes to the curve; logs retain commands and device errors.
+            if (m.Type is not "telemetry" and not "serial") AddLog($"{m.Type.ToUpperInvariant()}  {m.Message ?? body}");
+            else if (m.Type == "serial" && m.Message is { } text && !text.StartsWith('{')) AddLog(text);
         }
-        catch (JsonException error) { AddLog($"无法解析桥接消息：{error.Message}"); }
+        catch (JsonException error) { AddLog($"消息格式错误：{error.Message}"); }
     }
+
     public async Task StartAsync() => await InvokeAsync("window.controlLab.start()");
     public async Task SetThemeAsync(bool isDark)
     {
         IsDarkTheme = isDark;
-        if (ExecuteScript is not null)
-            await InvokeAsync($"window.controlLab?.setTheme({(isDark ? "true" : "false")})");
+        if (ExecuteScript is not null) await InvokeAsync($"window.controlLab?.setTheme({(isDark ? "true" : "false")})");
     }
-    public async Task SendAsync(string command, bool? value = null)
+    public async Task<bool> SendAsync(DeviceCommand command)
     {
-        if (!IsRunning) { Status = "请先启动仿真并等待下位机就绪"; return; }
-        var json = JsonSerializer.Serialize(new DeviceCommand(command, (++_sequence).ToString(), value), ProtocolJsonContext.Default.DeviceCommand);
-        await InvokeAsync($"window.controlLab.send({json})");
+        if (!IsRunning) { Status = "请先启动仿真"; return false; }
+        var id = (++_sequence).ToString(CultureInfo.InvariantCulture);
+        var completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _pending[id] = completion;
+        try
+        {
+            var json = JsonSerializer.Serialize(command with { Id = id }, ProtocolJsonContext.Default.DeviceCommand);
+            if (!await InvokeAsync($"window.controlLab.send({json})")) return false;
+            return await completion.Task.WaitAsync(TimeSpan.FromSeconds(8));
+        }
+        catch (TimeoutException) { HasError = true; Status = "下位机确认超时"; AddLog(Status); return false; }
+        finally { _pending.Remove(id); }
     }
     public async Task ReconnectAsync()
     {
-        IsConnected = false; IsRunning = false; HasError = false;
-        LedState = "LED 未就绪"; Uptime = "—"; Status = "正在重新连接…"; ConnectionLabel = "连接中";
+        // Run reload before resetting the delegate; navigation events invalidate it afterwards.
         await InvokeAsync("window.controlLab.reconnect()");
+        ResetConnection();
     }
-    private async Task InvokeAsync(string script)
+    private void ResetConnection()
+    {
+        IsConnected = false; IsRunning = false; IsHeating = false; HasError = false;
+        DoorOpen = false; Fault = ""; HeaterOutput = 0; ConnectionLabel = "连接中";
+        foreach (var request in _pending.Values) request.TrySetResult(false);
+        _pending.Clear();
+    }
+    private async Task<bool> InvokeAsync(string script)
     {
         try
         {
-            if (ExecuteScript is null) throw new InvalidOperationException("WebView 尚未加载");
-            await ExecuteScript(script);
+            if (ExecuteScript is null) throw new InvalidOperationException("仿真页面尚未就绪");
+            await ExecuteScript(script); return true;
         }
-        catch (Exception error) { HasError = true; Status = error.Message; AddLog($"ERROR  {error.Message}"); }
+        catch (Exception error) { HasError = true; Status = error.Message; AddLog($"ERROR  {error.Message}"); return false; }
     }
+    public void ClearSamples() { _samples.Clear(); Samples = Array.Empty<ThermalSample>(); OnPropertyChanged(nameof(Samples)); }
     public void AddLog(string text)
     {
         Logs.Insert(0, $"{DateTime.Now:HH:mm:ss}  {text}");

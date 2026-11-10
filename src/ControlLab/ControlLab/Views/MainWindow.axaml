@@ -7,7 +7,7 @@
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="ControlLab.Views.MainWindow"
         Icon="/Assets/avalonia-logo.ico"
-        Width="1360" Height="900" MinWidth="1000" MinHeight="740" Title="ControlLab · 控制系统综合设计">
+        Width="1360" Height="900" MinWidth="1000" MinHeight="740" Title="ControlLab · 恒温箱 PID 控制">
         <views:MainView />
 </Window>
 

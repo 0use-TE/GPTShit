@@ -1,98 +1,120 @@
-# ControlLab · 控制系统综合设计原型
+# 基于 ESP32 与 Avalonia 的恒温箱 PID 控制仿真系统
 
-Avalonia 内嵌完整 Wokwi 电路仿真，通过双向消息桥与 ESP32 中运行的下位机程序通信。
-界面使用 Semi.Avalonia，工作区使用 GOZA.Dock 的 VS Code Dark Modern / Light Modern 主题。
+ESP32 执行温度采样、PID、PWM 和故障保护；Wokwi 自定义热模型计算加热与散热，反馈温度；Avalonia 负责设置参数、显示曲线与记录实验。
 
-## 运行
+## 运行与演示
 
-需要 .NET 10 SDK、Windows WebView2 Runtime 和互联网连接。
+需要 Windows WebView2 Runtime、网络；从源码运行还需要 .NET 10 SDK。
 
 ```powershell
 ./run.ps1
 ```
 
-也可以打开 `ControlLab.slnx`，将 `ControlLab.Desktop` 设为启动项目。
+或直接运行已发布的 `artifacts/win-x64/ControlLab.Desktop.exe`。请保留同目录的 `Web` 文件夹。
 
-1. 等待右上角显示“已连接”。
-2. 点击“启动仿真”，首次需要下载仿真环境，可能耗时几十秒。
-3. 等待“运行中”，在左侧点击“点亮”“熄灭”或“Ping”。
-4. 检查电路中的 LED 和左侧回传状态；右下角切换“日志”查看收发记录。
-5. 出现连接错误时，点击“重新连接”重新加载电路及程序。
+1. 等待右上角“已连接”，点击“启动仿真”。
+2. 目标温度默认 50℃，点击“开始控温”。
+3. 在右上观察电路及热模型温度，在左侧控制区的曲线观察实际温度与目标温度。
+4. 接近稳态后点击“开门 5 秒”，观察降温和关门后的恢复。
+5. 调整目标温度、Kp/Ki/Kd，点击“应用参数”，比较响应。
+6. 点击“停止控温”将加热输出立即置零。
 
-界面分为三个 Dock 区域：左侧控制，右上仿真，右下代码/日志。
-右上角主题按钮同步切换 Semi 控件和 Dock 色板。
-区域支持标签移动和分隔条调整。右下角“代码”标签提供带行号的只读下位机源码查看。
-界面只保留操作及状态，接线说明和技术信息放在本文档中。
-Wokwi 远端页面内的画布及工具栏使用其自身的主题按钮；宿主页面的主题切换独立于该远端设置。
+三个 Dock 区域：左侧控制与温度曲线，右上仿真，右下代码 / 日志。右上角主题按钮同步切换 Semi 与 VS Code Dock 明暗色板。
 
-原生 AOT 发布：
-
-```powershell
-./publish.ps1
-./artifacts/win-x64/ControlLab.Desktop.exe
-```
-
-发布目录的 `Web` 文件夹须与 exe 一起保留。发布后的程序不需要安装 .NET，但需要 WebView2 和联网。
-
-## 程序和电路
+## 控制与模型
 
 ```text
-Avalonia MVVM / Crystal.Avalonia
-    ↕ NativeWebView.InvokeScript / invokeCSharpAction
-本地 HTTP 页面 bridge.js
-    ↕ Wokwi MessagePort 嵌入 API
-Wokwi ESP32 + 电路 + MicroPython 运行时
-    ↕ UART2：TX=GPIO17 / RX=GPIO16
-firmware/main.py：解析命令、控制 GPIO2、回传 ACK 与心跳
-    ↓
-GPIO2 → 330Ω 电阻 → 绿色 LED → GND
+Avalonia 参数与曲线
+       ↕ WebView / Wokwi 串口桥
+ESP32 MicroPython 程序
+       ├─ I²C 温度采样：GPIO22 / GPIO21，地址 0x48
+       ├─ PID：100ms 周期
+       ├─ PWM：GPIO25，500Hz
+       └─ 开门：GPIO27
+                  ↕
+Wokwi thermal.chip.wasm 热过程模型
 ```
 
-`firmware/main.py` 在 Wokwi 仿真的 ESP32 内执行，控制逻辑未放到 C# 或网页中。
-使用 MicroPython 独立下位机程序；当前没有 C/C++ 固件编译步骤。
-UART2 避免与 MicroPython UART0 的 REPL 控制台冲突。上位机无须安装虚拟串口。
+下位机代码：`firmware/main.py` 与 `firmware/pid.py`。
+热过程代码：`firmware/thermal.chip.c`，编译为 Wokwi 自定义 WebAssembly 元件。
 
-协议使用 UTF-8 JSON，每条以换行结尾：
+模型采用热平衡方程：
 
-```json
-{"command":"led","id":"1","value":true}
-{"type":"ack","id":"1","led":true,"uptime":1234}
+```text
+C × dT/dt = Pmax × u − k × (T − Ta)
 ```
 
-支持 `led` 和 `ping`，下位机每秒发送 `heartbeat`。LED 状态由设备消息确认，发送命令本身不会修改状态。
-命令等待确认 5 秒，网页 API 等待通常为 20 秒，启动等待为 120 秒。通信日志最多保留 200 条。
+| 参数 | 数值 |
+|---|---:|
+| 环境温度 Ta | 25℃ |
+| 热容 C | 80 J/K |
+| 最大加热功率 Pmax | 250 W |
+| 关门散热系数 k | 2.5 W/K |
+| 开门散热系数 k | 20 W/K |
 
-## 结构与约束
+热模型每 100ms 按仿真时间积分，累计 PWM 高电平持续时间计算真实占空比，经 I²C 回传温度。
+模型显示温度、橙色加热功率条和开门状态条。它将加热器与传感器抽象为过程模型，不包含功率级的 SPICE 分析。
 
-- Avalonia、Avalonia.Desktop、官方 Avalonia.Controls.WebView：**12.1.0**。
-- Semi.Avalonia **12.1.0.1**：替换 Fluent 主题，支持明暗切换。
-- GOZA.Dock **3.0.9**：VS Code 色板、标签页、停靠区域与分隔条。
-- Crystal.Avalonia **3.1.1**：应用启动、服务注册、View/ViewModel 配对。
-- CommunityToolkit.Mvvm：属性与命令源码生成；XAML 编译绑定。
-- WebView 事件在 `Behaviors/SimulationBridge.cs` 中显式订阅，未通过反射绑定 CLR 事件。
-- `Services/SimulationSession.cs` 管理通信状态，JSON 使用源码生成上下文，支持裁剪与 Native AOT。
-- 界面 code-behind 仅保留模板生成的 `InitializeComponent()` 构造初始化，无界面交互或业务逻辑。
-- `LocalWebServer` 仅监听 localhost 随机端口，提供静态页面与固件文件；页面验证 Wokwi 消息来源和 iframe 窗口。
-- 当前交付验证 Windows；Linux/Wayland 还需对应系统 WebView 后端及独立实机验证。
+PID 默认 Kp=8、Ki=0.7、Kd=4，输出范围 0–100%。采用条件积分抑制饱和累积，对测量值求导并滤波。
+应用参数会重置积分与微分状态，便于从统一初始条件比较参数效果。
 
-## Wokwi 嵌入说明
+目标温度范围为 30–75℃；实际温度达到 80℃或传感器异常时，ESP32 在控制周期内关闭 PWM，并锁定停止状态。
+故障消除后需手动点击“开始控温”恢复。停止控温不停止仿真，箱体继续自然散热。
 
-依据 [Wokwi 自有账号下的嵌入示例](https://github.com/wokwi/wokwi-embed-example)实现。
-该接口仍标注为实验原型、尚未正式支持；不能视为稳定公开 SDK，也不能据此承诺离线运行。
+温度遥测周期 500ms，曲线显示最近 180 秒，最多保存 7200 个采样点。
 
-`Assets/Web/config.json` 使用官方示例公开的演示 client_id；本次实测可用。后续若 Wokwi 改变访问策略，需要更新 client_id 或与平台确认集成方式。
-直接打开 `wokwi.com` 首页或普通项目 URL 不会自动获得该桥接协议。
+## 固件与构建
 
-电路以 `firmware/diagram.json` 定义，可复制到 Wokwi 网站编辑后再保存回本地；内嵌页面主要用于运行与观察。
-修改源文件后重新构建，固件和网页会自动复制到运行/发布目录。
+正常启动直接加载已打包的 MicroPython 固件、LittleFS 程序镜像及热模型，无须每次等待在线编译队列。
+Wokwi 网页及仿真引擎仍依赖网络，当前不承诺离线运行。
+
+```powershell
+# main.py / pid.py 修改后，dotnet build 会自动重建程序镜像；也可手动执行：
+./build-firmware.ps1
+
+# 热模型 C 代码修改后重新编译：
+./build-model.ps1
+
+# Windows Native AOT 发布：
+./publish.ps1
+```
+
+程序镜像构建使用 Python 与 littlefs-python 0.19.0，依赖安装到项目 `work/python-libs`。
+模型构建脚本使用 Wokwi 编辑器的 clang-wasm 构建服务，需要联网；已提交预编译模型。
+
+MicroPython v1.22.0 ESP32 固件从 0x1000 加载，LittleFS 镜像从 0x200000 加载。程序通过 UART2（GPIO17/16，115200）与宿主通信。
+采用分段二进制固件启动，是为了让 Wokwi 嵌入 API 同时加载 MicroPython 程序和自定义模型。
 
 ## 验证
 
-Windows 自动化冒烟测试会启动发布后的 AOT 程序，通过 UI Automation 操作原生按钮，检查下位机回传：
-
 ```powershell
+python -m unittest discover -s tests -p 'test_*.py'
 ./tests/smoke-native.ps1
 ```
 
-已实测网页端以及 Windows Native AOT 程序的连接、启动、开灯、关灯和 Ping 确认链路。
-冒烟测试还覆盖 Semi 明暗切换、VS Code Dock 色板切换，以及程序标签页切换后继续接收下位机确认。
+原生测试操作 AOT 程序的实际按钮，检查升温、开门、停止控温、参数应用以及主题/标签切换。
+
+Wokwi 完整闭环测试：
+
+```powershell
+npm install --prefix work playwright
+python -m http.server 8765 --bind 127.0.0.1 --directory artifacts/win-x64/Web
+# 在另一个终端运行：
+node tests/wokwi-live.cjs
+```
+
+实测默认参数下，约 20 秒温度达到 50.3℃，70 秒约为 50.0℃；稳态开门 5 秒降至约 41.3℃，关门后恢复。
+完整测试还检查恢复后的持续稳定、停止切断加热、传感器故障保护和修复后的手动恢复。
+Python 测试执行实际 PID 模块，并用模拟硬件运行实际下位机程序，验证超温、传感器断开及参数更新校验。
+
+## 技术与限制
+
+- Avalonia / 官方 NativeWebView 12.1.0，Crystal.Avalonia 3.1.1。
+- Semi.Avalonia 12.1.0.1，GOZA.Dock 3.0.9，VS Code Dark Modern / Light Modern。
+- 编译绑定、MVVM 命令、JSON 源码生成，Windows Native AOT。
+- 界面 code-behind 仅有构造初始化，通信、控制状态和图表在独立类中。
+- Wokwi 使用实验性的嵌入 API 和官方示例公开的演示 client_id，后续平台策略变化可能需要调整。
+- Wokwi 内部画布主题由它自己的主题按钮管理。
+- 当前验证 Windows；Linux/Wayland 需要相应 WebView 系统后端和独立验证。
+
+第三方来源与许可见 `THIRD-PARTY-NOTICES.md`。

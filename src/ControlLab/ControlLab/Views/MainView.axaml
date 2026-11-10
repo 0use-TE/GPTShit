@@ -1,7 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:ControlLab.ViewModels"
-             xmlns:b="using:ControlLab.Behaviors"
+             xmlns:b="using:ControlLab.Behaviors" xmlns:charts="using:ControlLab.Controls"
              x:Class="ControlLab.Views.MainView" x:DataType="vm:MainViewModel"
              ViewModelLocator.AutoWireViewModel="True"
              Background="{DynamicResource LabBackground}">
@@ -43,17 +43,31 @@
   </UserControl.Styles>
   <UserControl.DataTemplates>
     <DataTemplate DataType="{x:Type vm:DeviceTab}" x:DataType="vm:DeviceTab">
-      <StackPanel Margin="20" Spacing="12">
-        <Button Content="启动仿真" Classes="Primary" Command="{Binding Workspace.StartCommand}" IsEnabled="{Binding Workspace.Session.IsConnected}" HorizontalAlignment="Stretch" />
-        <Button Content="重新连接" Classes="Tertiary" Command="{Binding Workspace.ReconnectCommand}" HorizontalAlignment="Stretch" />
-        <Rectangle Height="1" Fill="{DynamicResource LabBorder}" Margin="0,8" />
-        <TextBlock Text="{Binding Workspace.Session.LedState}" FontSize="15" Margin="0,0,0,4" />
-        <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
-          <Button Content="点亮" AutomationProperties.Name="点亮 LED" Command="{Binding Workspace.LedOnCommand}" IsEnabled="{Binding Workspace.Session.IsRunning}" HorizontalAlignment="Stretch" />
-          <Button Grid.Column="1" Content="熄灭" AutomationProperties.Name="熄灭 LED" Command="{Binding Workspace.LedOffCommand}" IsEnabled="{Binding Workspace.Session.IsRunning}" HorizontalAlignment="Stretch" />
-        </Grid>
-        <Button Content="Ping" AutomationProperties.Name="Ping 下位机" Command="{Binding Workspace.PingCommand}" IsEnabled="{Binding Workspace.Session.IsRunning}" HorizontalAlignment="Stretch" Margin="0,8,0,0" />
-      </StackPanel>
+      <Grid RowDefinitions="*,230">
+      <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="18" Spacing="12">
+          <TextBlock Text="{Binding Workspace.Session.TemperatureText}" FontSize="30" FontWeight="SemiBold" AutomationProperties.AutomationId="Temperature" />
+          <TextBlock Text="{Binding Workspace.Session.OutputText}" FontSize="14" Foreground="{DynamicResource LabMuted}" />
+          <Button Content="启动仿真" Classes="Primary" Command="{Binding Workspace.StartCommand}" IsEnabled="{Binding Workspace.Session.IsConnected}" HorizontalAlignment="Stretch" />
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+            <TextBlock Text="目标 °C" VerticalAlignment="Center" />
+            <NumericUpDown Grid.Column="1" Width="112" Value="{Binding Workspace.TargetTemperature}" Minimum="30" Maximum="75" Increment="1" FormatString="0.0" AutomationProperties.AutomationId="TargetTemperature" />
+          </Grid>
+          <Button Content="{Binding Workspace.Session.ControlAction}" Command="{Binding Workspace.ToggleControlCommand}" IsEnabled="{Binding Workspace.Session.IsRunning}" HorizontalAlignment="Stretch" />
+          <Button Content="{Binding Workspace.Session.DoorText}" Command="{Binding Workspace.OpenDoorCommand}" IsEnabled="{Binding Workspace.Session.IsRunning}" HorizontalAlignment="Stretch" />
+          <Rectangle Height="1" Fill="{DynamicResource LabBorder}" Margin="0,4" />
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8"><TextBlock Text="Kp" VerticalAlignment="Center" /><NumericUpDown Grid.Column="1" Width="112" Value="{Binding Workspace.Kp}" Minimum="0" Maximum="50" Increment="0.5" FormatString="0.00" AutomationProperties.AutomationId="Kp" /></Grid>
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8"><TextBlock Text="Ki" VerticalAlignment="Center" /><NumericUpDown Grid.Column="1" Width="112" Value="{Binding Workspace.Ki}" Minimum="0" Maximum="10" Increment="0.1" FormatString="0.00" AutomationProperties.AutomationId="Ki" /></Grid>
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8"><TextBlock Text="Kd" VerticalAlignment="Center" /><NumericUpDown Grid.Column="1" Width="112" Value="{Binding Workspace.Kd}" Minimum="0" Maximum="50" Increment="0.5" FormatString="0.00" AutomationProperties.AutomationId="Kd" /></Grid>
+          <Button Content="应用参数" Command="{Binding Workspace.ApplyCommand}" IsEnabled="{Binding Workspace.Session.IsRunning}" HorizontalAlignment="Stretch" />
+          <Button Content="重新连接" Classes="Tertiary" Command="{Binding Workspace.ReconnectCommand}" HorizontalAlignment="Stretch" />
+          <TextBlock Text="{Binding Workspace.Session.SafetyText}" IsVisible="{Binding Workspace.Session.HasError}" TextWrapping="Wrap" Foreground="{DynamicResource LabError}" />
+        </StackPanel>
+      </ScrollViewer>
+      <Border Grid.Row="1" BorderBrush="{DynamicResource LabBorder}" BorderThickness="0,1,0,0" Padding="4,8,8,4">
+        <charts:TemperatureChart Samples="{Binding Workspace.Session.Samples}" IsDark="{Binding Workspace.IsDarkTheme}" AutomationProperties.Name="温度曲线" />
+      </Border>
+      </Grid>
     </DataTemplate>
     <DataTemplate DataType="{x:Type vm:CircuitTab}" x:DataType="vm:CircuitTab">
       <NativeWebView b:SimulationBridge.Session="{Binding Workspace.Session}" />
@@ -89,7 +103,7 @@
       </Grid>
     </Border>
     <DockShell Grid.Row="1" ColorTheme="{Binding DockTheme}" PanePresentation="ClassicSeams" TabPresentation="ClassicTabs" TabStripSize="36">
-      <Grid ColumnDefinitions="224,Auto,*">
+      <Grid ColumnDefinitions="360,Auto,*">
         <DockRegion ItemsSource="{Binding ToolTabs}" SelectedItem="{Binding SelectedTool}" ShowTabPlacementButton="False" ShowMaximizeButton="False" />
         <DockSplitter Grid.Column="1" />
         <Grid Grid.Column="2" RowDefinitions="2*,Auto,*">

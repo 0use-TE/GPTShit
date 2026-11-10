@@ -9,11 +9,13 @@ function Get-Elements {
     $queue.Enqueue($script:appWindow)
     while ($queue.Count -gt 0 -and $seen.Count -lt 2000) {
         $element = $queue.Dequeue()
-        $key = $element.GetRuntimeId() -join ':'
+        try { $key = $element.GetRuntimeId() -join ':' } catch { continue }
         if (!$seen.Add($key)) { continue }
         Write-Output $element
-        foreach ($child in $element.FindAll([System.Windows.Automation.TreeScope]::Children,
-            [System.Windows.Automation.Condition]::TrueCondition)) { $queue.Enqueue($child) }
+        try {
+            foreach ($child in $element.FindAll([System.Windows.Automation.TreeScope]::Children,
+                [System.Windows.Automation.Condition]::TrueCondition)) { $queue.Enqueue($child) }
+        } catch { continue } # Native WebView can replace its accessibility nodes between frames.
     }
 }
 
@@ -69,25 +71,38 @@ try {
     if ($startupNames -match 'Unable to invoke script before any page was loaded') { throw '启动期间调用了未就绪的 WebView' }
     Invoke-Button '启动仿真'
     Wait-Label '运行中'
-    Invoke-Button '点亮 LED'
-    Wait-Label 'LED 已点亮' 15
-    Wait-Label '已确认命令：1' 15
-    Invoke-Button '熄灭 LED'
-    Wait-Label 'LED 已熄灭' 15
+    Invoke-Button '开始控温'
+    Wait-Label '停止控温' 15
     Wait-Label '已确认命令：2' 15
-    Invoke-Button 'Ping 下位机'
-    Wait-Label '已确认命令：3' 15
+    $deadline = [DateTime]::UtcNow.AddSeconds(30)
+    do {
+        $temperature = Get-Elements | Where-Object { $_.Current.AutomationId -eq 'Temperature' } | Select-Object -First 1
+        $value = [double]::Parse(($temperature.Current.Name -replace '[^0-9.]',''), [Globalization.CultureInfo]::InvariantCulture)
+        if ($value -gt 30) { break }
+        Start-Sleep -Milliseconds 500
+    } while ([DateTime]::UtcNow -lt $deadline)
+    if ($value -le 30) { throw '下位机未驱动热模型升温' }
+    Write-Output "PASS  温度已升至 $value °C"
+    Invoke-Button '开门 5 秒'
+    Wait-Label '门已打开' 10
+    Wait-Label '开门 5 秒' 15
+    Invoke-Button '应用参数'
+    Wait-Label '已确认命令：4' 15
     Invoke-Button '浅色模式'
     Wait-Label '深色模式' 10
     Select-Tab '代码'
-    Wait-Label '"""Runs inside the simulated ESP32' 10
+    Wait-Label '"""ESP32 thermostat.' 10
     Invoke-Button '深色模式'
     Wait-Label '浅色模式' 10
+    Wait-Label '温度曲线' 10
+    $names = Get-Elements | ForEach-Object { $_.Current.Name }
+    if ($names -contains '导出数据') { throw '界面仍保留已移除的导出功能' }
+    Invoke-Button '停止控温'
+    Wait-Label '开始控温' 15
+    Wait-Label '加热 0%' 10
     Select-Tab '日志'
-    Invoke-Button 'Ping 下位机'
-    Wait-Label '已确认命令：4' 15
-    Write-Output 'PASS  Semi 明暗切换 / VS Code Dock / 标签页切换后通信'
-    Write-Output 'PASS  Windows Native AOT → WebView → Wokwi → ESP32 → ACK'
+    Wait-Label '已确认命令：5' 15
+    Write-Output 'PASS  Native AOT / PID 控温 / 温度反馈 / 开门扰动 / 停止加热 / 主题及标签切换'
 } finally {
     if (!$appProcess.HasExited) { Stop-Process -Id $appProcess.Id }
 }

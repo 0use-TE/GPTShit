@@ -1,0 +1,24 @@
+{
+  "name": "Thermal Box",
+  "author": "ControlLab",
+  "pins": [
+    "VCC",
+    "GND",
+    "PWM",
+    "DOOR",
+    "FAULT",
+    "SCL",
+    "SDA",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    ""
+  ],
+  "display": {
+    "width": 200,
+    "height": 100
+  }
+}
