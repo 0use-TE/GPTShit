@@ -102,7 +102,7 @@
         </Button>
       </Grid>
     </Border>
-    <DockShell Grid.Row="1" ColorTheme="{Binding DockTheme}" PanePresentation="ClassicSeams" TabPresentation="ClassicTabs" TabStripSize="36">
+    <DockShell Grid.Row="1" ColorTheme="{Binding DockTheme}" PanePresentation="ClassicSeams" TabPresentation="ModernPills" TabStripSize="36">
       <Grid ColumnDefinitions="360,Auto,*">
         <DockRegion ItemsSource="{Binding ToolTabs}" SelectedItem="{Binding SelectedTool}" ShowTabPlacementButton="False" ShowMaximizeButton="False" />
         <DockSplitter Grid.Column="1" />
