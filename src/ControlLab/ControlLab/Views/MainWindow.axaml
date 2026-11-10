@@ -6,7 +6,7 @@
         xmlns:views="using:ControlLab.Views"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="ControlLab.Views.MainWindow"
-        Icon="/Assets/avalonia-logo.ico"
+        Icon="/Assets/controllab-icon.ico"
         Width="1360" Height="900" MinWidth="1000" MinHeight="740" Title="ControlLab · 恒温箱 PID 控制">
         <views:MainView />
 </Window>
